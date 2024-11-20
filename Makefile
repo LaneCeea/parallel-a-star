@@ -6,8 +6,8 @@ PYTHON_INCLUDE := $(shell python3-config --includes)
 OUTPUT_EXT := $(shell python3-config --extension-suffix)
 
 # please modify when creating or deleting files 
-CPP_FILE := Core/add.cpp
-HEADER_FILE := Core/add.h
+CPP_FILE := Core/AStar.cpp Core/Grid.cpp
+HEADER_FILE := Core/AStar.h Core/Grid.h Core/Vec2.h
 
 PYBIND_FILE := Core/pybind.cpp
 CPP_MAIN_FILE := Core/main.cpp
