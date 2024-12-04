@@ -1,5 +1,5 @@
 CXX := g++
-CXX_FLAGS := -O3 -Wall -std=c++11
+CXX_FLAGS := -O3 -Wall -std=c++20
 DYNAMIC_FLAGS := -shared -fPIC
 PYBIND11_INCLUDE := -Iextern/pybind11/include/
 PYTHON_INCLUDE := $(shell python3-config --includes)

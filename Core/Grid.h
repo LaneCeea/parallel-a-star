@@ -8,8 +8,6 @@
 enum class CellState {
     EMPTY = 0,
     OBSTACLE,
-    OPEN,
-    CLOSED,
 };
 
 struct Cell {
@@ -28,12 +26,12 @@ public:
 
     void Print() const;
 
-    Cell& operator()(ptrdiff_t Offset)                         { return m_Cells[Offset]; }
-    Cell& operator()(ptrdiff_t Row, ptrdiff_t Col)                { return m_Cells[Col + Row * m_Cols]; }
-    Cell& operator()(const GridCoord& Coord)             { return this->operator()(Coord.y, Coord.x); }
-    const Cell& operator()(ptrdiff_t Offset) const             { return m_Cells[Offset]; }
-    const Cell& operator()(ptrdiff_t Row, ptrdiff_t Col) const    { return m_Cells[Col + Row * m_Cols]; }
-    const Cell& operator()(const GridCoord& Coord) const { return this->operator()(Coord.y, Coord.x); }
+    Cell& At(ptrdiff_t Offset)                                  { return m_Cells[Offset]; }
+    Cell& At(ptrdiff_t Row, ptrdiff_t Col)                      { return m_Cells[Col + Row * m_Cols]; }
+    Cell& At(const GridCoord& Coord)                            { return this->At(Coord.y, Coord.x); }
+    const Cell& At(ptrdiff_t Offset) const                      { return m_Cells[Offset]; }
+    const Cell& At(ptrdiff_t Row, ptrdiff_t Col) const          { return m_Cells[Col + Row * m_Cols]; }
+    const Cell& At(const GridCoord& Coord) const                { return this->At(Coord.y, Coord.x); }
     
     size_t Rows() const { return m_Rows; }
     size_t Cols() const { return m_Cols; }

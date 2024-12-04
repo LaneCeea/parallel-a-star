@@ -2,153 +2,80 @@
 
 #include <algorithm>
 #include <array>
+#include <queue>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
 #include <iostream>
-
 #include <cmath>
 
-namespace std {
-// implement hash for GridCoord so we can have
-// std::unordered_map<GridCoord> and std::unordered_set<GridCoord>
-template <>
-struct hash<GridCoord> {
-    std::size_t operator()(const GridCoord& Val) const noexcept {
-        return std::hash<ptrdiff_t>()(Val.x ^ (Val.y << 16));
-    }
-};
-} // namespace std
-
-namespace AStar {
-
-constexpr std::array<GridCoord, 4> c_NeighborDiff = {
-    GridCoord{ -1,  0 },
-    GridCoord{  1,  0 },
-    GridCoord{  0,  1 },
-    GridCoord{  0, -1 }
-};
-
-class _Heap {
-private:
-    struct _DataTy {
-        GridCoord Coord;
-        float FValue;
-        _DataTy() = default;
-        _DataTy(const GridCoord& Coord, float FValue) : Coord(Coord), FValue(FValue) {}
-    };
-
-public:
-    _Heap() = default;
-
-private:
-    // Compare for a min heap
-    static bool _Comp(const _DataTy& Lhs, const _DataTy& Rhs) {
-        return Lhs.FValue > Rhs.FValue;
-    }
-
-public:
-    void Push(const GridCoord& Coord, float FValue) {
-        m_Data.emplace_back(Coord, FValue);
-        std::push_heap(m_Data.begin(), m_Data.end(), _Comp);
-    }
-
-    void Pop() {
-        std::pop_heap(m_Data.begin(), m_Data.end(), _Comp);
-        m_Data.pop_back();
-    }
-
-    GridCoord Min() const { 
-        return m_Data.front().Coord;
-    }
-
-    bool Empty() const { 
-        return m_Data.empty();
-    }
-
-private:
-    std::vector<_DataTy> m_Data;
-};
-
-float _h(const GridCoord& Current, const GridCoord& Goal);
-float _MovementCost(const GridCoord& From, const GridCoord& To);
-bool _IsOutOfBound(const Grid& Env, const GridCoord& Coord);
-
-std::vector<GridCoord> Search(Grid& Env, const GridCoord& Start, const GridCoord& Goal) {
-    std::unordered_map<GridCoord, GridCoord> Parent;
-    std::unordered_map<GridCoord, float> GValue;
-    GValue[Start] = 0.0f;
-    _Heap Open;
-    Open.Push(Start, 0.0f);
+void AStarSolver::Search() {
+    m_GValue[m_Start] = 0.0f;
+    m_Open.push(_CellF(m_Start, 0.0f));
+    m_OpenSet.insert(m_Start);
 
     for (;;) {
-        if (Open.Empty()) {
-            // Goal was never reach
-            return std::vector<GridCoord>();
+        if (m_Open.empty()) { // Goal was never reach
+            return;
         }
 
         // open cell with lowest cost
-        const GridCoord CurrentCoord = Open.Min();
-        Open.Pop();
-        if (CurrentCoord == Goal) {
+        const auto [CurrentCoord, CurrentFValue] = m_Open.top();
+        m_Open.pop();
+        m_OpenSet.erase(CurrentCoord);
+        if (CurrentCoord == m_Goal) {
             break;
         }
 
-        Env(CurrentCoord).State = CellState::CLOSED;
+        m_ClosedSet.insert(CurrentCoord);
 
         for (const auto& Diff : c_NeighborDiff) {
             const GridCoord NeighborCoord = CurrentCoord + Diff;
-            if (_IsOutOfBound(Env, NeighborCoord)) {
+            if (_IsOutOfBound(NeighborCoord)) {
                 continue;
             }
-            Cell& Neighbor = Env(NeighborCoord);
+            Cell& Neighbor = m_Env->At(NeighborCoord);
 
             if (Neighbor.State == CellState::OBSTACLE) {
                 continue;
             }
 
-            const float NewCost = GValue[CurrentCoord] + _MovementCost(CurrentCoord, NeighborCoord);
+            const float NewCost = m_GValue[CurrentCoord] + _MovementCost(CurrentCoord, NeighborCoord);
 
-            if (Neighbor.State == CellState::OPEN && NewCost < GValue[NeighborCoord]) {
-                // found better path for neighbor
-                // if the heuristic is admissible and consistent, this should never happen
-                // but it might not be the case in parallel mode 
-            }
+            // to be discussed: what if the heuristic is not admissible or not consistent?
 
-            if (Neighbor.State == CellState::EMPTY) {
-                Neighbor.State = CellState::OPEN;
-                GValue.emplace(NeighborCoord, NewCost);
-                const float FValue = NewCost + _h(NeighborCoord, Goal);
-                Open.Push(NeighborCoord, FValue);
-                Parent.emplace(NeighborCoord, CurrentCoord);
+            if (!m_OpenSet.contains(NeighborCoord) && !m_ClosedSet.contains(NeighborCoord)) {
+                const float FValue = NewCost + _heuristic(NeighborCoord);
+                m_Open.push(_CellF(NeighborCoord, FValue));
+                m_OpenSet.insert(NeighborCoord);
+                m_GValue.emplace(NeighborCoord, NewCost);
+                m_Parent.emplace(NeighborCoord, CurrentCoord);
             }
         }
     }
 
-    std::vector<GridCoord> Result;
-    GridCoord Current = Goal;
-    while (Current != Start) {
-        Result.push_back(Current);
-        Current = Parent[Current];
+    GridCoord Current = m_Goal;
+    while (Current != m_Start) {
+        m_Solution.push_back(Current);
+        Current = m_Parent[Current];
     }
-    Result.push_back(Start);
-    return Result;
+    m_Solution.push_back(m_Start);
 }
 
-void PrintPath(const Grid &Env, const std::vector<GridCoord> &Path) {
+void AStarSolver::PrintPath() const {
     std::cout << "Grid with path:\n";
     std::unordered_set<GridCoord> IsOnPath;
-    for (const auto& Coord : Path) {
+    for (const auto& Coord : m_Solution) {
         IsOnPath.insert(Coord);
     }
 
-    for (size_t r = 0; r < Env.Rows(); ++r) {
-        for (size_t c = 0; c < Env.Cols(); ++c) {
+    for (size_t r = 0; r < m_Env->Rows(); ++r) {
+        for (size_t c = 0; c < m_Env->Cols(); ++c) {
             if (IsOnPath.count(GridCoord(c, r))) {
                 std::cout << 'O';
                 continue;
             }
-            const auto& Current = Env(r, c);
+            const auto& Current = m_Env->At(r, c);
             if (Current.State == CellState::OBSTACLE) {
                 std::cout << '#';
             } else {
@@ -159,18 +86,33 @@ void PrintPath(const Grid &Env, const std::vector<GridCoord> &Path) {
     }
 }
 
-float _h(const GridCoord& Current, const GridCoord& Goal) {
-    ptrdiff_t dx = std::abs(Current.x - Goal.x);
-    ptrdiff_t dy = std::abs(Current.y - Goal.y);
+void AStarSolver::SetEnv(const std::shared_ptr<Grid>& Env, const GridCoord& Start, const GridCoord& Goal) {
+    m_Env = Env;
+    m_Start = Start;
+    m_Goal = Goal;
+}
+
+void AStarSolver::ClearInfo() {
+    m_Solution.clear();
+    m_Open = _MinHeap{};
+    m_OpenSet.clear();
+    m_ClosedSet.clear();
+    m_GValue.clear();
+    m_Parent.clear();
+}
+
+float AStarSolver::_heuristic(const GridCoord& Current) const {
+    ptrdiff_t dx = std::abs(Current.x - m_Goal.x);
+    ptrdiff_t dy = std::abs(Current.y - m_Goal.y);
     return dx + dy;
 }
 
-float _MovementCost(const GridCoord& From, const GridCoord& To) {
+float AStarSolver::_MovementCost(const GridCoord& From, const GridCoord& To) const {
     return 1.0f;
 }
 
-bool _IsOutOfBound(const Grid &Env, const GridCoord &Coord) {
-    return (Coord.x < 0 || Coord.y < 0 || Coord.x >= (ptrdiff_t)Env.Cols() || Coord.y >= (ptrdiff_t)Env.Rows());
-}
-
+bool AStarSolver::_IsOutOfBound(const GridCoord &Coord) const {
+    return (
+        Coord.x < 0 || Coord.y < 0 ||
+        Coord.x >= (ptrdiff_t)m_Env->Cols() || Coord.y >= (ptrdiff_t)m_Env->Rows());
 }
