@@ -9,14 +9,14 @@
 #include <iostream>
 #include <cmath>
 
-void AStarSolver::Search() {
+bool AStarSolver::Search() {
     m_GValue[m_Start] = 0.0f;
     m_Open.push(_CellF(m_Start, 0.0f));
     m_OpenSet.insert(m_Start);
 
     for (;;) {
         if (m_Open.empty()) { // Goal was never reach
-            return;
+            return false;
         }
 
         // open cell with lowest cost
@@ -34,7 +34,7 @@ void AStarSolver::Search() {
             if (_IsOutOfBound(NeighborCoord)) {
                 continue;
             }
-            Cell& Neighbor = m_Env->At(NeighborCoord);
+            const Cell& Neighbor = m_Env->At(NeighborCoord);
 
             if (Neighbor.State == CellState::OBSTACLE) {
                 continue;
@@ -60,6 +60,7 @@ void AStarSolver::Search() {
         Current = m_Parent[Current];
     }
     m_Solution.push_back(m_Start);
+    return true;
 }
 
 void AStarSolver::PrintPath() const {
@@ -71,15 +72,23 @@ void AStarSolver::PrintPath() const {
 
     for (size_t r = 0; r < m_Env->Rows(); ++r) {
         for (size_t c = 0; c < m_Env->Cols(); ++c) {
-            if (IsOnPath.count(GridCoord(c, r))) {
+            if (IsOnPath.contains(GridCoord(c, r))) {
                 std::cout << 'O';
+                continue;
+            }
+            if (m_ClosedSet.contains(GridCoord(c, r))) {
+                std::cout << '-';
+                continue;
+            }
+            if (m_OpenSet.contains(GridCoord(c, r))) {
+                std::cout << '/';
                 continue;
             }
             const auto& Current = m_Env->At(r, c);
             if (Current.State == CellState::OBSTACLE) {
                 std::cout << '#';
             } else {
-                std::cout << '.';
+                std::cout << ' ';
             }
         }
         std::cout << '\n';

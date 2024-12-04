@@ -27,10 +27,12 @@ public:
     AStarSolver(const std::shared_ptr<Grid>& Env, const GridCoord& Start, const GridCoord& Goal) :
         m_Env(Env), m_Start(Start), m_Goal(Goal) {}
 
-    void Search();
+    bool Search();
     void PrintPath() const;
     void SetEnv(const std::shared_ptr<Grid>& Env, const GridCoord& Start, const GridCoord& Goal);
     void ClearInfo();
+
+    const std::vector<GridCoord>& GetSolution() const { return m_Solution; }
 
 private:
     float _heuristic(const GridCoord& Current) const;
