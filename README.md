@@ -1,4 +1,4 @@
-This project is aimed for Linux environment.
+This project is aimed for Linux and macOS environment.
 
 ***
 

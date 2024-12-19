@@ -1,9 +1,17 @@
 CXX := g++
 CXX_FLAGS := -O3 -Wall -std=c++20
-DYNAMIC_FLAGS := -shared -fPIC
+DYNAMIC_FLAGS := -shared
 PYBIND11_INCLUDE := -Iextern/pybind11/include/
 PYTHON_INCLUDE := $(shell python3-config --includes)
 OUTPUT_EXT := $(shell python3-config --extension-suffix)
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Linux)
+	DYNAMIC_FLAGS += -fPIC
+endif
+ifeq ($(UNAME_S), Darwin)
+	DYNAMIC_FLAGS += -undefined dynamic_lookup
+endif
 
 # please modify when creating or deleting files 
 CPP_FILE := Core/AStar.cpp Core/Grid.cpp
