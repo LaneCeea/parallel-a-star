@@ -7,6 +7,7 @@ This project is aimed for Linux environment.
 2. `make`
 3. `python` 3.8 or newer
 4. `python3-dev`
+5. `python3-tk` (or just make sure python can import `tkinter`)
 
 ***
 
