@@ -1,18 +1,48 @@
+import numpy as np
+import time
 import tkinter as tk
 from lib.Core import Grid, GridCoord, CellState, AStarSolver
 
+class FPSApp:
+    def __init__(self, root):
+        self.root = root
+
+        # Initialize variables to track FPS
+        self.last_time = time.time()
+        self.frame_count = 0
+        self.fps = 0
+
+        # Create a label to display FPS
+        self.fps_label = tk.Label(root, text="FPS: 0", font=("Helvetica", 12))
+        self.fps_label.pack(pady=20)
+
+        # Start the frame update loop
+        self.update_frame()
+
+    def update_frame(self):
+        # Calculate the time elapsed since the last frame
+        current_time = time.time()
+        delta_time = current_time - self.last_time
+        self.frame_count += 1
+
+        # Update FPS every second
+        if delta_time >= 1.0:
+            self.fps = self.frame_count / delta_time
+            self.fps_label.config(text=f"FPS: {self.fps:.2f}")
+            self.last_time = current_time
+            self.frame_count = 0
+
+        # Schedule the next frame update
+        self.root.after(1, self.update_frame)
+
 # Grid dimensions and initial obstacles
-rows, cols = 9, 9
-initial_obstacles = [
-    (4, 4), (4, 1), (4, 2), (4, 3), (4, 5), (4, 6), (4, 7),
-    (1, 4), (2, 4), (3, 4), (5, 4), (6, 4), (7, 4)
-]
+rows, cols = 330, 330
 
 # Initialize Tkinter window
 root = tk.Tk()
 root.title("A* Pathfinding Visualization")
 
-cell_size = 80
+cell_size = 3
 canvas_width = cols * cell_size
 canvas_height = rows * cell_size
 
@@ -21,8 +51,11 @@ canvas.pack()
 
 # Create and configure the grid
 grid = Grid(rows, cols)
-for row, col in initial_obstacles:
-    grid.at(row, col).state = CellState.OBSTACLE
+for y in range(rows):
+    for x in range(cols):
+        random_bool = np.random.binomial(1, 0.2)
+        if (random_bool):
+            grid.at(y, x).state = CellState.OBSTACLE
 
 # Track application state
 solution_displayed = False
@@ -47,46 +80,67 @@ def draw_grid():
             else:
                 color = "white"
 
-            if start_node and (row, col) == (start_node.y, start_node.x):
-                color = "blue"
-            elif goal_node and (row, col) == (goal_node.y, goal_node.x):
-                color = "purple"
-
-            canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="gray")
+            canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="")
+    draw_start_goal()
 
 # Function to draw the solution path
 def draw_solution():
-    for coord in solution_path:
+    for coord in solution_closed:
         row, col = coord.y, coord.x
-        if start_node and (row, col) == (start_node.y, start_node.x):
-            continue
-        if goal_node and (row, col) == (goal_node.y, goal_node.x):
-            continue
         x1 = col * cell_size
         y1 = row * cell_size
         x2 = x1 + cell_size
         y2 = y1 + cell_size
-        canvas.create_rectangle(x1, y1, x2, y2, fill="green", outline="gray")
+        canvas.create_rectangle(x1, y1, x2, y2, fill="#40D697", outline="")
+    for coord in solution_open:
+        row, col = coord.y, coord.x
+        x1 = col * cell_size
+        y1 = row * cell_size
+        x2 = x1 + cell_size
+        y2 = y1 + cell_size
+        canvas.create_rectangle(x1, y1, x2, y2, fill="#147D5B", outline="")
+    for coord in solution_path:
+        row, col = coord.y, coord.x
+        x1 = col * cell_size
+        y1 = row * cell_size
+        x2 = x1 + cell_size
+        y2 = y1 + cell_size
+        canvas.create_rectangle(x1, y1, x2, y2, fill="#00FF70", outline="")
+    draw_start_goal()
+
+def draw_start_goal():
+    if start_node:
+        x1 = start_node.x * cell_size
+        y1 = start_node.y * cell_size
+        x2 = x1 + cell_size
+        y2 = y1 + cell_size
+        canvas.create_rectangle(x1, y1, x2, y2, fill="#FF0000", outline="")
+    if goal_node:
+        x1 = goal_node.x * cell_size
+        y1 = goal_node.y * cell_size
+        x2 = x1 + cell_size
+        y2 = y1 + cell_size
+        canvas.create_rectangle(x1, y1, x2, y2, fill="#FF00EE", outline="")
+
 
 # Function to activate the solver and display the solution
 def activate_solver(event=None):
-    global solution_displayed, solution_path
+    global solution_displayed, solution_path, solution_open, solution_closed
     if not solution_displayed and start_node and goal_node:
         solver = AStarSolver(grid, start_node, goal_node)
-        if solver.search():
-            solution_path = solver.get_solution()
-            draw_solution()
-            solution_displayed = True
-        else:
-            print("No path found.")
+        solver.search()
+        solution_path = solver.get_solution()
+        solution_open = solver.get_openset()
+        solution_closed = solver.get_closedset()
+        draw_solution()
+        solution_displayed = True
 
 # Function to clear the solution
 def clear_solution():
     global solution_displayed, solution_path
     if solution_displayed:
-        solution_path = []
-        draw_grid()
         solution_displayed = False
+        draw_grid()
 
 def on_left_click(event):
     if mode == 'obstacle' and not solution_displayed:
@@ -156,6 +210,8 @@ canvas.bind("<Button-3>", on_right_click)
 
 # Draw the initial grid
 draw_grid()
+
+app = FPSApp(root)
 
 # Run the Tkinter event loop
 root.mainloop()

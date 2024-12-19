@@ -33,6 +33,8 @@ public:
     void ClearInfo();
 
     const std::vector<GridCoord>& GetSolution() const { return m_Solution; }
+    const std::unordered_set<GridCoord>& GetOpenSet() const { return m_OpenSet; }
+    const std::unordered_set<GridCoord>& GetClosedSet() const { return m_ClosedSet; }
 
 private:
     float _heuristic(const GridCoord& Current) const;

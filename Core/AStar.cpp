@@ -9,14 +9,19 @@
 #include <iostream>
 #include <cmath>
 
+#include "Timer.h"
+
 bool AStarSolver::Search() {
+    Timer FunctionTimer("Search", TimerMode::ReportToConsole);
     m_GValue[m_Start] = 0.0f;
     m_Open.push(_CellF(m_Start, 0.0f));
     m_OpenSet.insert(m_Start);
+    bool success = true;
 
     for (;;) {
         if (m_Open.empty()) { // Goal was never reach
-            return false;
+            success = false;
+            break;
         }
 
         // open cell with lowest cost
@@ -54,12 +59,19 @@ bool AStarSolver::Search() {
         }
     }
 
-    GridCoord Current = m_Goal;
-    while (Current != m_Start) {
-        m_Solution.push_back(Current);
-        Current = m_Parent[Current];
+    if (success) {
+        GridCoord Current = m_Goal;
+        while (Current != m_Start) {
+            m_Solution.push_back(Current);
+            Current = m_Parent[Current];
+        }
+        m_Solution.push_back(m_Start);
     }
-    m_Solution.push_back(m_Start);
+
+    std::cout
+        << "    Path      " << m_Solution.size() << '\n'
+        << "    OpenSet   " << m_OpenSet.size() << '\n'
+        << "    ClosedSet " << m_ClosedSet.size() << '\n';
     return true;
 }
 

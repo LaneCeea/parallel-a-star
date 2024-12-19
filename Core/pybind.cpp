@@ -11,16 +11,17 @@ namespace py = pybind11;
 PYBIND11_MODULE(Core, m) {
     m.doc() = "A* pathfinding algorithm bindings";
 
-    // Bind GridCoord (Vec2<ptrdiff_t>)
-    py::class_<Vec2<ptrdiff_t>>(m, "GridCoord")
+    // Bind GridCoord
+    py::class_<GridCoord>(m, "GridCoord")
         .def(py::init<>())
         .def(py::init<ptrdiff_t, ptrdiff_t>(), py::arg("x"), py::arg("y"))
-        .def_readwrite("x", &Vec2<ptrdiff_t>::x)
-        .def_readwrite("y", &Vec2<ptrdiff_t>::y)
-        .def("__add__", [](const Vec2<ptrdiff_t>& a, const Vec2<ptrdiff_t>& b) { return a + b; })
-        .def("__sub__", [](const Vec2<ptrdiff_t>& a, const Vec2<ptrdiff_t>& b) { return a - b; })
-        .def("__eq__", [](const Vec2<ptrdiff_t>& a, const Vec2<ptrdiff_t>& b) { return a == b; })
-        .def("__ne__", [](const Vec2<ptrdiff_t>& a, const Vec2<ptrdiff_t>& b) { return a != b; });
+        .def_readwrite("x", &GridCoord::x)
+        .def_readwrite("y", &GridCoord::y)
+        .def("__add__", [](const GridCoord& a, const GridCoord& b) { return a + b; })
+        .def("__sub__", [](const GridCoord& a, const GridCoord& b) { return a - b; })
+        .def("__eq__", [](const GridCoord& a, const GridCoord& b) { return a == b; })
+        .def("__ne__", [](const GridCoord& a, const GridCoord& b) { return a != b; })
+        .def("__hash__", [](const GridCoord& a) { return std::hash<GridCoord>()(a); });
 
     // Bind CellState enum
     py::enum_<CellState>(m, "CellState")
@@ -53,5 +54,7 @@ PYBIND11_MODULE(Core, m) {
         .def("print_path", &AStarSolver::PrintPath)
         .def("set_env", &AStarSolver::SetEnv, py::arg("env"), py::arg("start"), py::arg("goal"))
         .def("clear_info", &AStarSolver::ClearInfo)
-        .def("get_solution", &AStarSolver::GetSolution, py::return_value_policy::reference_internal);
+        .def("get_solution", &AStarSolver::GetSolution, py::return_value_policy::reference_internal)
+        .def("get_openset", &AStarSolver::GetOpenSet, py::return_value_policy::reference_internal)
+        .def("get_closedset", &AStarSolver::GetClosedSet, py::return_value_policy::reference_internal);
 }

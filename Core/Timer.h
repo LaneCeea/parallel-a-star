@@ -82,6 +82,12 @@ private:
     Container m_Data;
 };
 
+enum class TimerMode {
+    None = 0,
+    ReportToManager,
+    ReportToConsole
+};
+
 // Scope-based Timer
 class Timer {
 public:
@@ -89,7 +95,8 @@ public:
     using TimePoint = ClockType::time_point;
     using DurationType = std::chrono::duration<double>;
 
-    Timer(std::string_view Info) : m_Start(ClockType::now()), m_Info(Info) {}
+    Timer(std::string_view Info, TimerMode Mode = TimerMode::ReportToManager) :
+        m_Start(ClockType::now()), m_Info(Info), m_Mode(Mode) {}
 
     double GetElapsedTime() {
         const TimePoint End = ClockType::now();
@@ -99,11 +106,16 @@ public:
 
     ~Timer() {
         const double Time = GetElapsedTime();
-        auto& Manager = TimerManager::GetInstance();
-        Manager(m_Info, Time);
+        if (m_Mode == TimerMode::ReportToManager) {
+            auto& Manager = TimerManager::GetInstance();
+            Manager(m_Info, Time);
+        } else if (m_Mode == TimerMode::ReportToConsole) {
+            printf("%s %5.0f ms\n", m_Info.data(), Time);
+        }
     }
     
 private:
     TimePoint m_Start;
     std::string_view m_Info;
+    TimerMode m_Mode;
 };
